@@ -21,12 +21,12 @@
     this.context = new Context(obj, undefined, "keep");
     this.chainableObj = chainableObj;
     this.actions = [];
-    this._addFunctionIntercepts();
+    chaferFns.addFunctionIntercepts(this);
   };
 
   Chafer.prototype = {
     keep: function() {
-      this._addAction(function(ctx) {
+      chaferFns.addAction(this, function(ctx) {
         return new Context(ctx.obj, ctx.ret, "keep");
       });
 
@@ -34,7 +34,7 @@
     },
 
     pass: function() {
-      this._addAction(function(ctx) {
+      chaferFns.addAction(this, function(ctx) {
         return new Context(ctx.ret, ctx.ret, "pass");
       });
 
@@ -44,8 +44,8 @@
     force: function() {
       for (var i = 0; i < this.actions.length; i++) {
         this.context = this.actions[i](this.context);
-        this._clearFunctionIntercepts();
-        this._addFunctionIntercepts();
+        chaferFns.clearFunctionIntercepts(this);
+        chaferFns.addFunctionIntercepts(this);
       }
 
       this.actions = [];
@@ -53,51 +53,53 @@
     },
 
     tap: function(fn) {
-      this._addAction(function(ctx) {
+      chaferFns.addAction(this, function(ctx) {
         fn(ctx.obj);
         return ctx;
       });
 
       return this.chainableObj;
+    }
+  };
+
+  var chaferFns = {
+    addFunctionIntercepts: function(chafer) {
+      var interceptFns = this.interceptFunctions(chafer, chafer.context.obj);
+      chafer.interceptedFnIds = keys(interceptFns);
+      mixin(interceptFns, chafer.chainableObj);
     },
 
-    _addFunctionIntercepts: function() {
-      var interceptFns = this._interceptFunctions(this.context.obj);
-      this._interceptedFnIds = keys(interceptFns);
-      mixin(interceptFns, this.chainableObj);
-    },
-
-    _clearFunctionIntercepts: function() {
-      for (var i = 0; i < this._interceptedFnIds.length; i++) {
-        this.chainableObj[this._interceptedFnIds[i]] = undefined;
+    clearFunctionIntercepts: function(chafer) {
+      for (var i = 0; i < chafer.interceptedFnIds.length; i++) {
+        chafer.chainableObj[chafer.interceptedFnIds[i]] = undefined;
       }
     },
 
-    _createChainableMethod: function(fnName) {
+    createChainableMethod: function(chafer, fnName) {
       var self = this;
       return function() {
         var args = arguments;
-        self._addAction(function(ctx) {
+        self.addAction(chafer, function(ctx) {
           return new Context(ctx.obj, ctx.obj[fnName].apply(ctx.obj, args), ctx.mode);
         });
 
-        return self.chainableObj;
+        return chafer.chainableObj;
       };
     },
 
-    _interceptFunctions: function(obj) {
+    interceptFunctions: function(chafer, obj) {
       var interceptFunctions = {};
       for (var i in obj) {
         if (obj[i] instanceof Function) {
-          interceptFunctions[i] = this._createChainableMethod(i);
+          interceptFunctions[i] = this.createChainableMethod(chafer, i);
         }
       }
 
       return interceptFunctions;
     },
 
-    _addAction: function(fn) {
-      this.actions.push(fn);
+    addAction: function(chafer, fn) {
+      chafer.actions.push(fn);
     }
   };
 
