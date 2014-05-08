@@ -1,6 +1,6 @@
 ;(function() {
   var chafe = function(obj) {
-    return new ChainableObj(obj);
+    return new ObjWrapper(obj);
   };
 
   var Context = function(obj, ret, mode) {
@@ -9,21 +9,28 @@
     this.mode = mode;
   };
 
-  var ChainableObj = function(obj) {
-    abortIfDuplicateKeys(obj);
-    this.context = new Context(obj, undefined, "keep");
-    this.actions = [];
+  var ObjWrapper = function(obj) {
+    if (obj.chafe !== undefined) {
+      throw "Your chained object has a property called chafe. Aborting.";
+    }
 
+    this.chafe = new Chafer(this, obj); // split ObjWrapper namespace from chain obj namespace
+  };
+
+  var Chafer = function(chainableObj, obj) {
+    this.context = new Context(obj, undefined, "keep");
+    this.chainableObj = chainableObj;
+    this.actions = [];
     this._addFunctionIntercepts();
   };
 
-  ChainableObj.prototype = {
+  Chafer.prototype = {
     keep: function() {
       this._addAction(function(ctx) {
         return new Context(ctx.obj, ctx.ret, "keep");
       });
 
-      return this;
+      return this.chainableObj;
     },
 
     pass: function() {
@@ -31,7 +38,7 @@
         return new Context(ctx.ret, ctx.ret, "pass");
       });
 
-      return this;
+      return this.chainableObj;
     },
 
     force: function() {
@@ -51,18 +58,18 @@
         return ctx;
       });
 
-      return this;
+      return this.chainableObj;
     },
 
     _addFunctionIntercepts: function() {
       var interceptFns = this._interceptFunctions(this.context.obj);
       this._interceptedFnIds = keys(interceptFns);
-      mixin(interceptFns, this);
+      mixin(interceptFns, this.chainableObj);
     },
 
     _clearFunctionIntercepts: function() {
       for (var i = 0; i < this._interceptedFnIds.length; i++) {
-        this[this._interceptedFnIds[i]] = undefined;
+        this.chainableObj[this._interceptedFnIds[i]] = undefined;
       }
     },
 
@@ -74,7 +81,7 @@
           return new Context(ctx.obj, ctx.obj[fnName].apply(ctx.obj, args), ctx.mode);
         });
 
-        return self;
+        return self.chainableObj;
       };
     },
 
@@ -92,14 +99,7 @@
     _addAction: function(fn) {
       this.actions.push(fn);
     }
-  };
 
-  var abortIfDuplicateKeys = function(obj) {
-    var duplicateKeys = intersection(keys(obj), keys(ChainableObj.prototype));
-    if (duplicateKeys.length > 0) {
-      throw "Some methods (" + duplicateKeys +
-        ") appear on both the chained object and the Chafe API.  Aborting.";
-    };
   };
 
   var keys = function(obj) {

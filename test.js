@@ -24,10 +24,11 @@ Person.prototype = {
 var chafe = require('./chafe');
 
 var hi = chafe(new Person())
-  .keep()
+  .chafe.keep()
   .setName("Mary")
   .setEyeColor("blue")
-  .tap(function(obj) { console.log(obj); })
+  // .chafe.tap(function(obj) { console.log(obj); })
   .sayHi()
-  .force();
+  .chafe.pass()
+  .chafe.force();
 console.log(hi)
