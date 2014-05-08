@@ -17,52 +17,22 @@
     this.chafe = new Chain(this, obj); // split ObjWrapper namespace from chain obj namespace
   };
 
+  var toArray = function(args) {
+    return Array.prototype.slice.call(args);
+  };
+
+  var purify = function(scope, fn) {
+    return fn.apply(null, [scope].concat(toArray(arguments)));
+  };
+
   var Chain = function(chainableObj, obj) {
     this.context = new Context(obj, undefined, "keep");
     this.chainableObj = chainableObj;
     this.actions = [];
-    chainFns.addFunctionIntercepts(this);
+    chainHelpers.addFunctionIntercepts(this);
   };
 
-  Chain.prototype = {
-    keep: function() {
-      chainFns.addAction(this, function(ctx) {
-        return new Context(ctx.obj, ctx.ret, "keep");
-      });
-
-      return this.chainableObj;
-    },
-
-    pass: function() {
-      chainFns.addAction(this, function(ctx) {
-        return new Context(ctx.ret, ctx.ret, "pass");
-      });
-
-      return this.chainableObj;
-    },
-
-    force: function() {
-      for (var i = 0; i < this.actions.length; i++) {
-        this.context = this.actions[i](this.context);
-        chainFns.clearFunctionIntercepts(this);
-        chainFns.addFunctionIntercepts(this);
-      }
-
-      this.actions = [];
-      return this.context.ret;
-    },
-
-    tap: function(fn) {
-      chainFns.addAction(this, function(ctx) {
-        fn(ctx.obj);
-        return ctx;
-      });
-
-      return this.chainableObj;
-    }
-  };
-
-  var chainFns = {
+  var chainHelpers = {
     addFunctionIntercepts: function(chain) {
       var interceptFns = this.interceptFunctions(chain, chain.context.obj);
       chain.interceptedFnIds = keys(interceptFns);
@@ -101,6 +71,51 @@
     addAction: function(chain, fn) {
       chain.actions.push(fn);
     }
+  };
+
+  var chainApi = {
+    keep: function(chain) {
+      chainHelpers.addAction(chain, function(ctx) {
+        return new Context(ctx.obj, ctx.ret, "keep");
+      });
+
+      return chain.chainableObj;
+    },
+
+    pass: function(chain) {
+      chainHelpers.addAction(chain, function(ctx) {
+        return new Context(ctx.ret, ctx.ret, "pass");
+      });
+
+      return chain.chainableObj;
+    },
+
+    force: function(chain) {
+      for (var i = 0; i < chain.actions.length; i++) {
+        chain.context = chain.actions[i](chain.context);
+        chainHelpers.clearFunctionIntercepts(chain);
+        chainHelpers.addFunctionIntercepts(chain);
+      }
+
+      chain.actions = [];
+      return chain.context.ret;
+    },
+
+    tap: function(chain, fn) {
+      chainHelpers.addAction(chain, function(ctx) {
+        fn(ctx.obj);
+        return ctx;
+      });
+
+      return chain.chainableObj;
+    }
+  };
+
+  Chain.prototype = {
+    keep: function() { return purify(this, chainApi.keep) },
+    pass: function() { return purify(this, chainApi.pass) },
+    force: function() { return purify(this, chainApi.force) },
+    tap: function() { return purify(this, chainApi.tap) }
   };
 
   var keys = function(obj) {
