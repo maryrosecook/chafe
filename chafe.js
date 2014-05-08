@@ -11,7 +11,7 @@
 
   var ObjWrapper = function(obj) {
     if (obj.chafe !== undefined) {
-      throw "Your chained object has a property called chafe. Aborting.";
+      throw "The object you are chaining on has a property called chafe. Aborting.";
     }
 
     this.chafe = new Chafer(this, obj); // split ObjWrapper namespace from chain obj namespace
@@ -99,7 +99,6 @@
     _addAction: function(fn) {
       this.actions.push(fn);
     }
-
   };
 
   var keys = function(obj) {
