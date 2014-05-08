@@ -14,19 +14,19 @@
       throw "The object you are chaining on has a property called chafe. Aborting.";
     }
 
-    this.chafe = new Chafer(this, obj); // split ObjWrapper namespace from chain obj namespace
+    this.chafe = new Chain(this, obj); // split ObjWrapper namespace from chain obj namespace
   };
 
-  var Chafer = function(chainableObj, obj) {
+  var Chain = function(chainableObj, obj) {
     this.context = new Context(obj, undefined, "keep");
     this.chainableObj = chainableObj;
     this.actions = [];
-    chaferFns.addFunctionIntercepts(this);
+    chainFns.addFunctionIntercepts(this);
   };
 
-  Chafer.prototype = {
+  Chain.prototype = {
     keep: function() {
-      chaferFns.addAction(this, function(ctx) {
+      chainFns.addAction(this, function(ctx) {
         return new Context(ctx.obj, ctx.ret, "keep");
       });
 
@@ -34,7 +34,7 @@
     },
 
     pass: function() {
-      chaferFns.addAction(this, function(ctx) {
+      chainFns.addAction(this, function(ctx) {
         return new Context(ctx.ret, ctx.ret, "pass");
       });
 
@@ -44,8 +44,8 @@
     force: function() {
       for (var i = 0; i < this.actions.length; i++) {
         this.context = this.actions[i](this.context);
-        chaferFns.clearFunctionIntercepts(this);
-        chaferFns.addFunctionIntercepts(this);
+        chainFns.clearFunctionIntercepts(this);
+        chainFns.addFunctionIntercepts(this);
       }
 
       this.actions = [];
@@ -53,7 +53,7 @@
     },
 
     tap: function(fn) {
-      chaferFns.addAction(this, function(ctx) {
+      chainFns.addAction(this, function(ctx) {
         fn(ctx.obj);
         return ctx;
       });
@@ -62,44 +62,44 @@
     }
   };
 
-  var chaferFns = {
-    addFunctionIntercepts: function(chafer) {
-      var interceptFns = this.interceptFunctions(chafer, chafer.context.obj);
-      chafer.interceptedFnIds = keys(interceptFns);
-      mixin(interceptFns, chafer.chainableObj);
+  var chainFns = {
+    addFunctionIntercepts: function(chain) {
+      var interceptFns = this.interceptFunctions(chain, chain.context.obj);
+      chain.interceptedFnIds = keys(interceptFns);
+      mixin(interceptFns, chain.chainableObj);
     },
 
-    clearFunctionIntercepts: function(chafer) {
-      for (var i = 0; i < chafer.interceptedFnIds.length; i++) {
-        chafer.chainableObj[chafer.interceptedFnIds[i]] = undefined;
+    clearFunctionIntercepts: function(chain) {
+      for (var i = 0; i < chain.interceptedFnIds.length; i++) {
+        chain.chainableObj[chain.interceptedFnIds[i]] = undefined;
       }
     },
 
-    createChainableMethod: function(chafer, fnName) {
+    createChainableMethod: function(chain, fnName) {
       var self = this;
       return function() {
         var args = arguments;
-        self.addAction(chafer, function(ctx) {
+        self.addAction(chain, function(ctx) {
           return new Context(ctx.obj, ctx.obj[fnName].apply(ctx.obj, args), ctx.mode);
         });
 
-        return chafer.chainableObj;
+        return chain.chainableObj;
       };
     },
 
-    interceptFunctions: function(chafer, obj) {
+    interceptFunctions: function(chain, obj) {
       var interceptFunctions = {};
       for (var i in obj) {
         if (obj[i] instanceof Function) {
-          interceptFunctions[i] = this.createChainableMethod(chafer, i);
+          interceptFunctions[i] = this.createChainableMethod(chain, i);
         }
       }
 
       return interceptFunctions;
     },
 
-    addAction: function(chafer, fn) {
-      chafer.actions.push(fn);
+    addAction: function(chain, fn) {
+      chain.actions.push(fn);
     }
   };
 
