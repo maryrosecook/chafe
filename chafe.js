@@ -35,6 +35,12 @@
   };
 
   var chainHelpers = {
+    setContext: function(chain, context) {
+      chain.context = context;
+      chainHelpers.clearFunctionIntercepts(chain);
+      chainHelpers.addFunctionIntercepts(chain);
+    },
+
     addFunctionIntercepts: function(chain) {
       var interceptFns = this.interceptFunctions(chain, chain.context.obj);
       chain.interceptedFnIds = keys(interceptFns);
@@ -86,16 +92,14 @@
 
   var chainApi = {
     keep: function(chain) {
-      chain.context = new Context(chain.context.obj, chain.context.ret, "keep");
-      chainHelpers.clearFunctionIntercepts(chain);
-      chainHelpers.addFunctionIntercepts(chain);
+      chainHelpers.setContext(chain,
+                              new Context(chain.context.obj, chain.context.ret, "keep"));
       return chain.objWrapper;
     },
 
     pass: function(chain) {
-      chain.context = new Context(chain.context.ret, chain.context.ret, "pass");
-      chainHelpers.clearFunctionIntercepts(chain);
-      chainHelpers.addFunctionIntercepts(chain);
+      chainHelpers.setContext(chain,
+                              new Context(chain.context.ret, chain.context.ret, "pass"));
       return chain.objWrapper;
     },
 
