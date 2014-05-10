@@ -59,7 +59,7 @@
       return function() {
         var result = chain.ctx.obj[fnName].apply(chain.ctx.obj, arguments);
         var obj = chain.ctx.mode === "keep" ? chain.ctx.obj : result;
-        chain.ctx = new Ctx(obj, result, chain.ctx.mode);
+        chainHelpers.setCtx(chain, new Ctx(obj, result, chain.ctx.mode));
         return chain.objWrapper;
       };
     },
