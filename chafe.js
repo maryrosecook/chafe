@@ -21,8 +21,9 @@
     return Array.prototype.slice.call(args);
   };
 
-  var purify = function(scope, fn) {
-    return fn.apply(null, [scope].concat(toArray(arguments)));
+  var purify = function() {
+    var args = toArray(arguments);
+    return args[0].apply(null, [args[1]].concat(args.slice(2)));
   };
 
   var Chain = function(chainableObj, obj) {
@@ -112,10 +113,10 @@
   };
 
   Chain.prototype = {
-    keep: function() { return purify(this, chainApi.keep) },
-    pass: function() { return purify(this, chainApi.pass) },
-    force: function() { return purify(this, chainApi.force) },
     tap: function() { return purify(this, chainApi.tap) }
+    keep: function() { return purify(chainApi.keep, this) },
+    pass: function() { return purify(chainApi.pass, this) },
+    force: function() { return purify(chainApi.force, this) },
   };
 
   var keys = function(obj) {
