@@ -3,6 +3,8 @@
     return new ObjWrapper(obj);
   };
 
+  var root = this;
+
   var Context = function(obj, ret, mode) {
     this.obj = obj;
     this.ret = ret;
@@ -26,96 +28,92 @@
     return args[0].apply(null, [args[1]].concat(args.slice(2)));
   };
 
-  var Chain = function(chainableObj, obj) {
+  var Chain = function(objWrapper, obj) {
     this.context = new Context(obj, undefined, "keep");
-    this.chainableObj = chainableObj;
-    this.actions = [];
-    chainHelpers.addFunctionIntercepts(this);
+    this.objWrapper = objWrapper;
+    this.keep();
   };
 
   var chainHelpers = {
     addFunctionIntercepts: function(chain) {
       var interceptFns = this.interceptFunctions(chain, chain.context.obj);
       chain.interceptedFnIds = keys(interceptFns);
-      mixin(interceptFns, chain.chainableObj);
+      mixin(interceptFns, chain.objWrapper);
     },
 
     clearFunctionIntercepts: function(chain) {
-      for (var i = 0; i < chain.interceptedFnIds.length; i++) {
-        chain.chainableObj[chain.interceptedFnIds[i]] = undefined;
+      if (chain.interceptedFnIds !== undefined) {
+        chain.objWrapper.prototype = chain.context.obj;
+        for (var i = 0; i < chain.interceptedFnIds.length; i++) {
+          chain.objWrapper[chain.interceptedFnIds[i]] = undefined;
+        }
       }
     },
 
     createChainableMethod: function(chain, fnName) {
-      var self = this;
       return function() {
-        var args = arguments;
-        self.addAction(chain, function(ctx) {
-          return new Context(ctx.obj, ctx.obj[fnName].apply(ctx.obj, args), ctx.mode);
-        });
-
-        return chain.chainableObj;
+        var result = chain.context.obj[fnName].apply(chain.context.obj, arguments);
+        var obj = chain.context.mode === "keep" ? chain.context.obj : result;
+        chain.context = new Context(obj, result, chain.context.mode);
+        return chain.objWrapper;
       };
     },
 
     interceptFunctions: function(chain, obj) {
-      var interceptFunctions = {};
-      for (var i in obj) {
-        if (obj[i] instanceof Function) {
-          interceptFunctions[i] = this.createChainableMethod(chain, i);
+      var fnNames = [];
+      if (type(obj) === "Object") {
+        for (var i in obj) {
+          fnNames.push(i);
+        }
+      } else { // Array, String etc
+        fnNames = Object.getOwnPropertyNames(root[type(obj)].prototype);
+      }
+
+      var interceptFunctions = [];
+      for (var i = 0; i < fnNames.length; i++) {
+        var fnName = fnNames[i];
+        if (obj[fnName] instanceof Function) {
+          interceptFunctions[fnName] = this.createChainableMethod(chain, fnName);
         }
       }
 
       return interceptFunctions;
-    },
-
-    addAction: function(chain, fn) {
-      chain.actions.push(fn);
     }
+  };
+
+  var type = function(x) {
+    return Object.prototype.toString.call(x).match(/\[object ([^\]]+)\]/)[1];
   };
 
   var chainApi = {
     keep: function(chain) {
-      chainHelpers.addAction(chain, function(ctx) {
-        return new Context(ctx.obj, ctx.ret, "keep");
-      });
-
-      return chain.chainableObj;
+      chain.context = new Context(chain.context.obj, chain.context.ret, "keep");
+      chainHelpers.clearFunctionIntercepts(chain);
+      chainHelpers.addFunctionIntercepts(chain);
+      return chain.objWrapper;
     },
 
     pass: function(chain) {
-      chainHelpers.addAction(chain, function(ctx) {
-        return new Context(ctx.ret, ctx.ret, "pass");
-      });
-
-      return chain.chainableObj;
+      chain.context = new Context(chain.context.ret, chain.context.ret, "pass");
+      chainHelpers.clearFunctionIntercepts(chain);
+      chainHelpers.addFunctionIntercepts(chain);
+      return chain.objWrapper;
     },
 
-    force: function(chain) {
-      for (var i = 0; i < chain.actions.length; i++) {
-        chain.context = chain.actions[i](chain.context);
-        chainHelpers.clearFunctionIntercepts(chain);
-        chainHelpers.addFunctionIntercepts(chain);
-      }
-
-      chain.actions = [];
+    value: function(chain) {
       return chain.context.ret;
     },
 
     tap: function(chain, fn) {
-      chainHelpers.addAction(chain, function(ctx) {
-        fn(ctx.obj);
-        return ctx;
-      });
-
-      return chain.chainableObj;
+      fn(this.context.obj);
+      return chain.objWrapper;
     }
   };
 
   Chain.prototype = {
     keep: function() { return purify(chainApi.keep, this) },
     pass: function() { return purify(chainApi.pass, this) },
-    force: function() { return purify(chainApi.force, this) },
+    value: function() { return purify(chainApi.value, this) },
     tap: function(fn) { return purify(chainApi.tap, this, fn) }
   };
 
