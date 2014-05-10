@@ -5,7 +5,7 @@
 
   var root = this;
 
-  var Context = function(obj, ret, mode) {
+  var Ctx = function(obj, ret, mode) {
     this.obj = obj;
     this.ret = ret;
     this.mode = mode;
@@ -29,20 +29,20 @@
   };
 
   var Chain = function(objWrapper, obj) {
-    this.context = new Context(obj, undefined, "keep");
+    this.ctx = new Ctx(obj, undefined, "keep");
     this.objWrapper = objWrapper;
     this.keep();
   };
 
   var chainHelpers = {
-    setContext: function(chain, context) {
-      chain.context = context;
+    setCtx: function(chain, ctx) {
+      chain.ctx = ctx;
       chainHelpers.clearFunctionIntercepts(chain);
       chainHelpers.addFunctionIntercepts(chain);
     },
 
     addFunctionIntercepts: function(chain) {
-      var interceptFns = this.interceptFunctions(chain, chain.context.obj);
+      var interceptFns = this.interceptFunctions(chain, chain.ctx.obj);
       chain.interceptedFnIds = keys(interceptFns);
       mixin(interceptFns, chain.objWrapper);
     },
@@ -57,9 +57,9 @@
 
     createChainableMethod: function(chain, fnName) {
       return function() {
-        var result = chain.context.obj[fnName].apply(chain.context.obj, arguments);
-        var obj = chain.context.mode === "keep" ? chain.context.obj : result;
-        chain.context = new Context(obj, result, chain.context.mode);
+        var result = chain.ctx.obj[fnName].apply(chain.ctx.obj, arguments);
+        var obj = chain.ctx.mode === "keep" ? chain.ctx.obj : result;
+        chain.ctx = new Ctx(obj, result, chain.ctx.mode);
         return chain.objWrapper;
       };
     },
@@ -92,23 +92,21 @@
 
   var chainApi = {
     keep: function(chain) {
-      chainHelpers.setContext(chain,
-                              new Context(chain.context.obj, chain.context.ret, "keep"));
+      chainHelpers.setCtx(chain, new Ctx(chain.ctx.obj, chain.ctx.ret, "keep"));
       return chain.objWrapper;
     },
 
     pass: function(chain) {
-      chainHelpers.setContext(chain,
-                              new Context(chain.context.ret, chain.context.ret, "pass"));
+      chainHelpers.setCtx(chain, new Ctx(chain.ctx.ret, chain.ctx.ret, "pass"));
       return chain.objWrapper;
     },
 
     value: function(chain) {
-      return chain.context.ret;
+      return chain.ctx.ret;
     },
 
     tap: function(chain, fn) {
-      fn(this.context.obj);
+      fn(this.ctx.obj);
       return chain.objWrapper;
     }
   };
