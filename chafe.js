@@ -113,10 +113,10 @@
   };
 
   Chain.prototype = {
-    tap: function() { return purify(this, chainApi.tap) }
     keep: function() { return purify(chainApi.keep, this) },
     pass: function() { return purify(chainApi.pass, this) },
     force: function() { return purify(chainApi.force, this) },
+    tap: function(fn) { return purify(chainApi.tap, this, fn) }
   };
 
   var keys = function(obj) {

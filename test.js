@@ -27,7 +27,7 @@ var hi = chafe(new Person())
   .chafe.keep()
   .setName("Mary")
   .setEyeColor("blue")
-  // .chafe.tap(function(obj) { console.log(obj); })
+  .chafe.tap(function(obj) { console.log(obj); })
   .sayHi()
   .chafe.pass()
   .chafe.force();
