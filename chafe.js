@@ -100,6 +100,10 @@
       return this.ctx.ret;
     },
 
+    this: function() {
+      return this.ctx.obj;
+    },
+
     tap: function(fn) {
       fn(this.ctx.obj);
       return this.objWrapper;
