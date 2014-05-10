@@ -14,28 +14,21 @@ var party = function() {
   };
 };
 
-// sane: chain method calls on any object
 
-var birthday = party();
-var chain = chafe(birthday)                  // this: { guests: [] }
-  .invite("Mary")                            // this: { guests: ["Mary"] }
-  .invite("Isla")                            // this: { guests: ["Mary", "Isla"] }
-  .invite("Sam");                            // this: { guests: ["Mary", "Isla", "Sam"] }
-console.log(chain.describe().chafe.value()); // prints "Mary and Isla and Sam are dancing"
-
-// sanish: switch to pass mode to
-//         have each return value be
-//         `this` in the next function
+ var birthday = party();
+    var chain = chafe(birthday);                 // this: { guests: [] }
+    chain.invite("Mary")                            // this: { guests: ["Mary"] }
+      .invite("Isla")                            // this: { guests: ["Mary", "Isla"] }
+      .invite("Sam")                            // this: { guests: ["Mary", "Isla", "Sam"] }
+      .describe();
+    console.log(chain.chafe.value());
 
 chain.chafe.pass()                           // this: "Mary and Isla and Sam are dancing"
-  .toUpperCase();                            // this: "MARY AND ISLA AND SAM ARE DANCING"
-console.log(chain.chafe.value());            // prints "MARY AND ISLA AND SAM ARE DANCING"
+      .toUpperCase();                            // this: "MARY AND ISLA AND SAM ARE DANCING"
+    console.log(chain.chafe.value());
 
-// mental: bind a function as a method
-//         to the current `this`
-
-                                             // this: "MARY AND ISLA AND SAM ARE DANCING"
-chain.chafe.adhoc(function(punc) {
-  return this + punc;
-}, "!");                                     // this: "MARY AND ISLA AND SAM ARE DANCING!"
-console.log(chain.chafe.value());            // prints "MARY AND ISLA AND SAM ARE DANCING!"
+                                                 // this: "MARY AND ISLA AND SAM ARE DANCING"
+    chain.chafe.adhoc(function(punc) {
+      return this + punc;
+    }, "!");                                     // this: "MARY AND ISLA AND SAM ARE DANCING!"
+    console.log(chain.chafe.value());            // prints "MARY AND ISLA AND SAM ARE DANCING!"
