@@ -23,11 +23,6 @@
     return Array.prototype.slice.call(args);
   };
 
-  var purify = function() {
-    var args = toArray(arguments);
-    return args[0].apply(null, [args[1]].concat(args.slice(2)));
-  };
-
   var Chain = function(objWrapper, obj) {
     this.ctx = new Ctx(obj, undefined, "keep");
     this.objWrapper = objWrapper;
@@ -90,40 +85,29 @@
     return Object.prototype.toString.call(x).match(/\[object ([^\]]+)\]/)[1];
   };
 
-  var chainApi = {
-    keep: function(chain) {
-      chainHelpers.setCtx(chain, new Ctx(chain.ctx.obj, chain.ctx.ret, "keep"));
-      return chain.objWrapper;
-    },
-
-    pass: function(chain) {
-      chainHelpers.setCtx(chain, new Ctx(chain.ctx.ret, chain.ctx.ret, "pass"));
-      return chain.objWrapper;
-    },
-
-    value: function(chain) {
-      return chain.ctx.ret;
-    },
-
-    tap: function(chain, fn) {
-      fn(this.ctx.obj);
-      return chain.objWrapper;
-    },
-
-    adhoc: function(chain, fn) {
-      chainHelpers.createChainableMethod(chain, fn)
-        .apply(null, toArray(arguments).slice(2));
-      return chain.objWrapper;
-    }
-  };
-
   Chain.prototype = {
-    keep: function() { return purify(chainApi.keep, this) },
-    pass: function() { return purify(chainApi.pass, this) },
-    value: function() { return purify(chainApi.value, this) },
-    tap: function(fn) { return purify(chainApi.tap, this, fn) },
-    adhoc: function() {
-      return purify.apply(null, [chainApi.adhoc, this].concat(toArray(arguments)));
+    keep: function() {
+      chainHelpers.setCtx(this, new Ctx(this.ctx.obj, this.ctx.ret, "keep"));
+      return this.objWrapper;
+    },
+
+    pass: function() {
+      chainHelpers.setCtx(this, new Ctx(this.ctx.ret, this.ctx.ret, "pass"));
+      return this.objWrapper;
+    },
+
+    value: function() {
+      return this.ctx.ret;
+    },
+
+    tap: function(fn) {
+      fn(this.ctx.obj);
+      return this.objWrapper;
+    },
+
+    adhoc: function(fn) {
+      chainHelpers.createChainableMethod(this, fn).apply(null, toArray(arguments).slice(1));
+      return this.objWrapper;
     }
   };
 
