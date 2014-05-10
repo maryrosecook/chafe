@@ -1,34 +1,25 @@
-var Person = function() {
-  this.name = "";
-  this.eyeColor = "";
-}
+var person = function() {
+  return {
+    name: "",
 
-Person.prototype = {
-  setName: function(name) {
-    this.name = name;
-  },
+    setName: function(name) {
+      this.name = name;
+    },
 
-  setEyeColor: function(eyeColor) {
-    this.eyeColor = eyeColor;
-  },
-
-  sayHi: function() {
-    return "Hi, my name is " +
-      this.name +
-      " and I have " +
-      this.eyeColor +
-      " eyes.";
-  }
+    sayHi: function() {
+      return "Hi, I'm " + this.name;
+    }
+  };
 };
 
 var chafe = require('./chafe');
 
-var hi = chafe(new Person())
-  .chafe.keep()
-  .setName("Mary")
-  .setEyeColor("blue")
-  .chafe.tap(function(obj) { console.log(obj); })
-  .sayHi()
-  .chafe.pass()
-  .chafe.force();
-console.log(hi)
+var mary = person();
+var hi = chafe(mary) // this: mary
+    .setName("Mary") // mary.setName()
+    .sayHi()         // mary.sayHi()
+    .chafe.pass()    // this: "Hi, I'm"
+    .toUpperCase()   // "Hi, I'm".toUpperCase()
+    .chafe.value();  // => "HI, I'M MARY"
+
+console.log(hi);
