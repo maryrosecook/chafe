@@ -55,9 +55,9 @@
       }
     },
 
-    createChainableMethod: function(chain, fnName) {
+    createChainableMethod: function(chain, fn) {
       return function() {
-        var result = chain.ctx.obj[fnName].apply(chain.ctx.obj, arguments);
+        var result = fn.apply(chain.ctx.obj, arguments);
         var obj = chain.ctx.mode === "keep" ? chain.ctx.obj : result;
         chainHelpers.setCtx(chain, new Ctx(obj, result, chain.ctx.mode));
         return chain.objWrapper;
@@ -78,7 +78,7 @@
       for (var i = 0; i < fnNames.length; i++) {
         var fnName = fnNames[i];
         if (obj[fnName] instanceof Function) {
-          interceptFunctions[fnName] = this.createChainableMethod(chain, fnName);
+          interceptFunctions[fnName] = this.createChainableMethod(chain, obj[fnName]);
         }
       }
 
@@ -108,6 +108,12 @@
     tap: function(chain, fn) {
       fn(this.ctx.obj);
       return chain.objWrapper;
+    },
+
+    adhoc: function(chain, fn) {
+      chainHelpers.createChainableMethod(chain, fn)
+        .apply(null, toArray(arguments).slice(2));
+      return chain.objWrapper;
     }
   };
 
@@ -115,7 +121,10 @@
     keep: function() { return purify(chainApi.keep, this) },
     pass: function() { return purify(chainApi.pass, this) },
     value: function() { return purify(chainApi.value, this) },
-    tap: function(fn) { return purify(chainApi.tap, this, fn) }
+    tap: function(fn) { return purify(chainApi.tap, this, fn) },
+    adhoc: function() {
+      return purify.apply(null, [chainApi.adhoc, this].concat(toArray(arguments)));
+    }
   };
 
   var keys = function(obj) {
