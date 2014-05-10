@@ -43,7 +43,6 @@
 
     clearFunctionIntercepts: function(chain) {
       if (chain.interceptedFnIds !== undefined) {
-        chain.objWrapper.prototype = chain.context.obj;
         for (var i = 0; i < chain.interceptedFnIds.length; i++) {
           chain.objWrapper[chain.interceptedFnIds[i]] = undefined;
         }
