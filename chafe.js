@@ -24,7 +24,7 @@
   };
 
   var Chain = function(objWrapper, obj) {
-    this.ctx = new Ctx(obj, undefined, "keep");
+    this.ctx = new Ctx(obj, obj, "keep");
     this.objWrapper = objWrapper;
     this.keep();
   };
